@@ -4,13 +4,13 @@
 ## Download
 
 ### Package Manager
-`Install-Package Stone_Red-C-Sharp-Utilities`
+`Install-Package AlwaysUpToDate`
 
 ### .NET CLI
-`dotnet add package Stone_Red-C-Sharp-Utilities`
+`dotnet add package AlwaysUpToDate`
 
 ### NuGet
-https://www.nuget.org/packages/Stone_Red-C-Sharp-Utilities
+https://www.nuget.org/packages/AlwaysUpToDate
 
 ## How it works
 AlwaysUpToDate downloads an json information file containing update information from your server.
