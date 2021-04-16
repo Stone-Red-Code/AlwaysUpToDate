@@ -11,13 +11,13 @@
 using System;
 using System.Reflection;
 
-[assembly: System.Reflection.AssemblyCompanyAttribute("AlwaysUpToDate")]
-[assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
-[assembly: System.Reflection.AssemblyFileVersionAttribute("0.0.0.1")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("0.0.0.1")]
-[assembly: System.Reflection.AssemblyProductAttribute("AlwaysUpToDate")]
-[assembly: System.Reflection.AssemblyTitleAttribute("AlwaysUpToDate")]
-[assembly: System.Reflection.AssemblyVersionAttribute("0.0.0.1")]
+[assembly: System.Reflection.AssemblyCompanyAttribute("AlwaysUpToDate-Test")]
+[assembly: System.Reflection.AssemblyConfigurationAttribute("Release")]
+[assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0")]
+[assembly: System.Reflection.AssemblyProductAttribute("AlwaysUpToDate-Test")]
+[assembly: System.Reflection.AssemblyTitleAttribute("AlwaysUpToDate-Test")]
+[assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]
 
 // Von der MSBuild WriteCodeFragment-Klasse generiert.
 

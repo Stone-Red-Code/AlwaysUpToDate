@@ -5,24 +5,29 @@ namespace AlwaysUpToDate_Test
 {
     internal class Program
     {
-        static private Updater downloader = new Updater(new TimeSpan(0, 0, 1), "https://raw.githubusercontent.com/Stone-Red-Code/Test/main/test.json", "./", false);
+        static private Updater updater = new Updater(new TimeSpan(0, 0, 1), "https://raw.githubusercontent.com/Stone-Red-Code/Test/main/test.json", "./", false);
 
         private static void Main(string[] args)
         {
-            downloader.Start();
-            downloader.ProgressChanged += Downloader_ProgressChanged;
-            downloader.UpdateAvailible += Downloader_UpdateAvailible;
+            updater.Start();
+            updater.ProgressChanged += Updater_ProgressChanged;
+            updater.UpdateAvailible += Updater_UpdateAvailible;
 
             Console.ReadLine();
         }
 
-        private static void Downloader_UpdateAvailible(string version, string additionalInformationUrl)
+        private static void Updater_UpdateAvailible(string version, string additionalInformationUrl)
         {
-            Console.WriteLine("New Update: " + version);
-            downloader.Update();
+            Console.WriteLine("New Update avalible: " + version);
+            Console.WriteLine("Do you want to install the new update? (y/n)");
+
+            char input = Console.ReadKey().KeyChar;
+
+            if (char.ToLower(input) == 'y')
+                updater.Update();
         }
 
-        private static void Downloader_ProgressChanged(long? totalFileSize, long totalBytesDownloaded, double? progressPercentage)
+        private static void Updater_ProgressChanged(long? totalFileSize, long totalBytesDownloaded, double? progressPercentage)
         {
             Console.WriteLine($"{totalBytesDownloaded}/{totalFileSize}  {progressPercentage}%");
         }
