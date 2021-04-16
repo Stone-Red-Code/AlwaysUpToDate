@@ -1,0 +1,12 @@
+{
+  "version": 2,
+  "dgSpecHash": "YqwqH9xiWa+JEMoKEVk5YUIYIEsq0IbV8y7N2zNzhr8CN7f1D0hmGdph5hTus1IgKonnuio0KI/wN37wF1glVQ==",
+  "success": true,
+  "projectFilePath": "C:\\Users\\David\\Google Drive\\Programmieren\\AlwaysUpToDate\\AlwaysUpToDate-Test\\AlwaysUpToDate-Test.csproj",
+  "expectedPackageFiles": [
+    "C:\\Users\\David\\.nuget\\packages\\system.runtime.compilerservices.unsafe\\5.0.0\\system.runtime.compilerservices.unsafe.5.0.0.nupkg.sha512",
+    "C:\\Users\\David\\.nuget\\packages\\system.text.encodings.web\\5.0.1\\system.text.encodings.web.5.0.1.nupkg.sha512",
+    "C:\\Users\\David\\.nuget\\packages\\system.text.json\\5.0.2\\system.text.json.5.0.2.nupkg.sha512"
+  ],
+  "logs": []
+}
