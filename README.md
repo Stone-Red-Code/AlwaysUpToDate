@@ -61,7 +61,7 @@ private static void Downloader_ProgressChanged(long? totalFileSize, long totalBy
 ```
 ### Handeling the update
 ```
-private static void Updater_UpdateAvailible(string version, string additionalInformationUrl)
+private static void Updater_UpdateAvailible(string version, string additionalInformation)
 {
     Console.WriteLine("New Update avalible: " + version);
     Console.WriteLine("Do you want to install the new update? (y/n)");
