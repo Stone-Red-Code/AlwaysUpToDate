@@ -57,6 +57,12 @@
           ],
           "assetTargetFallback": true,
           "warn": true,
+          "downloadDependencies": [
+            {
+              "name": "Microsoft.NETCore.App.Host.win-x64",
+              "version": "[3.1.13, 3.1.13]"
+            }
+          ],
           "frameworkReferences": {
             "Microsoft.NETCore.App": {
               "privateAssets": "all"
@@ -67,7 +73,7 @@
       }
     },
     "C:\\Users\\David\\Google Drive\\Programmieren\\AlwaysUpToDate\\AlwaysUpToDate\\AlwaysUpToDate.csproj": {
-      "version": "1.0.0.1",
+      "version": "1.0.0.2",
       "restore": {
         "projectUniqueName": "C:\\Users\\David\\Google Drive\\Programmieren\\AlwaysUpToDate\\AlwaysUpToDate\\AlwaysUpToDate.csproj",
         "projectName": "AlwaysUpToDate",

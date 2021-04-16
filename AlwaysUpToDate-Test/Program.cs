@@ -16,7 +16,7 @@ namespace AlwaysUpToDate_Test
             Console.ReadLine();
         }
 
-        private static void Updater_UpdateAvailible(string version, string additionalInformationUrl)
+        private static void Updater_UpdateAvailible(string version, string additionalInformation)
         {
             Console.WriteLine("New Update avalible: " + version);
             Console.WriteLine("Do you want to install the new update? (y/n)");

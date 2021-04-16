@@ -33,7 +33,7 @@
           "lib/netcoreapp3.0/System.Text.Json.dll": {}
         }
       },
-      "AlwaysUpToDate/1.0.0.1": {
+      "AlwaysUpToDate/1.0.0.2": {
         "type": "project",
         "framework": ".NETStandard,Version=v2.1",
         "dependencies": {
@@ -129,7 +129,7 @@
         "version.txt"
       ]
     },
-    "AlwaysUpToDate/1.0.0.1": {
+    "AlwaysUpToDate/1.0.0.2": {
       "type": "project",
       "path": "../AlwaysUpToDate/AlwaysUpToDate.csproj",
       "msbuildProject": "../AlwaysUpToDate/AlwaysUpToDate.csproj"
@@ -137,7 +137,7 @@
   },
   "projectFileDependencyGroups": {
     ".NETCoreApp,Version=v3.1": [
-      "AlwaysUpToDate >= 1.0.0.1"
+      "AlwaysUpToDate >= 1.0.0.2"
     ]
   },
   "packageFolders": {
@@ -197,6 +197,12 @@
         ],
         "assetTargetFallback": true,
         "warn": true,
+        "downloadDependencies": [
+          {
+            "name": "Microsoft.NETCore.App.Host.win-x64",
+            "version": "[3.1.13, 3.1.13]"
+          }
+        ],
         "frameworkReferences": {
           "Microsoft.NETCore.App": {
             "privateAssets": "all"

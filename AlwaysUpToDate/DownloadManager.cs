@@ -16,7 +16,7 @@ namespace AlwaysUpToDate
 
         public event UpdaterChangedHandler ProgressChanged;
 
-        public delegate void UpdateAvalibleHandler(string version, string additionalInformationUrl);
+        public delegate void UpdateAvalibleHandler(string version, string additionalInformation);
 
         public event UpdateAvalibleHandler UpdateAvailible;
 
@@ -75,7 +75,7 @@ namespace AlwaysUpToDate
                 updateUrl = updateInfo.FileUrl;
                 if (!updateInfo.Mandatory)
                 {
-                    UpdateAvailible(updateInfo.Version, updateInfo.AdditionalInformationUrl);
+                    UpdateAvailible(updateInfo.Version, updateInfo.AdditionalInformation);
                 }
                 else
                 {

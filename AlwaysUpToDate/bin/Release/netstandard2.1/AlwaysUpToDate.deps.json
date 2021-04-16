@@ -7,7 +7,7 @@
   "targets": {
     ".NETStandard,Version=v2.1": {},
     ".NETStandard,Version=v2.1/": {
-      "AlwaysUpToDate/1.0.0.1": {
+      "AlwaysUpToDate/1.0.0.2": {
         "dependencies": {
           "System.Text.Json": "5.0.2"
         },
@@ -99,7 +99,7 @@
     }
   },
   "libraries": {
-    "AlwaysUpToDate/1.0.0.1": {
+    "AlwaysUpToDate/1.0.0.2": {
       "type": "project",
       "serviceable": false,
       "sha512": ""

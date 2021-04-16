@@ -8,7 +8,7 @@ namespace AlwaysUpToDate
     {
         public string Version { get; set; }
         public string FileUrl { get; set; }
-        public string AdditionalInformationUrl { get; set; }
+        public string AdditionalInformation { get; set; }
         public bool Mandatory { get; set; }
     }
 }

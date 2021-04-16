@@ -27,11 +27,13 @@ While extracting the zip file all the files that have the same name/path as in t
 - Version (Required): The version should have this format `X.X.X.X`
 - FileUrl (Required): Url to the newest installer version zip file
 - Mandatory (Optional): Should be either true or false. The default is false
+- AdditionalInformation (Optional): Can be anything. This will get passed as a parameter of the `UpdateAvailible` event.
 ```json
 {
    "Version":"version",
    "FileUrl":"url",
-   "Mandatory":false
+   "Mandatory":false,
+   "AdditionalInformation":"information",
 }
 ```
 
