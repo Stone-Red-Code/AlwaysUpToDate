@@ -13,7 +13,7 @@
 https://www.nuget.org/packages/AlwaysUpToDate
 
 ## How it works
-AlwaysUpToDate downloads an json information file containing update information from your server.
+AlwaysUpToDate downloads an json file containing update information from your server.
 The file gets used to determent if an update is available. If the version in the file is greater than the assembly version of your application then either the update event gets triggered or you can decide if you want to download the update or if the update is marked as mandatory it gets downloaded and installed instantly.
 After the install the new version will be started automatically.
 
