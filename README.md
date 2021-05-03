@@ -62,7 +62,7 @@ private static void Downloader_ProgressChanged(long? totalFileSize, long totalBy
 }
 ```
 ### Handeling the update
-```
+```cs
 private static void Updater_UpdateAvailible(string version, string additionalInformation)
 {
     Console.WriteLine("New Update avalible: " + version);
@@ -75,7 +75,7 @@ private static void Updater_UpdateAvailible(string version, string additionalInf
 }
 ```
 ### Download process reporting
-```
+```cs
 private static void Updater_ProgressChanged(long? totalFileSize, long totalBytesDownloaded, double? progressPercentage)
 {
     Console.WriteLine($"{totalBytesDownloaded}/{totalFileSize}  {progressPercentage}%");
