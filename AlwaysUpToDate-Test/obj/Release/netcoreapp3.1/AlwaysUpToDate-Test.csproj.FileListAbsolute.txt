@@ -9,7 +9,6 @@ C:\Users\David\Google Drive\Programmieren\AlwaysUpToDate\AlwaysUpToDate-Test\bin
 C:\Users\David\Google Drive\Programmieren\AlwaysUpToDate\AlwaysUpToDate-Test\bin\Release\netcoreapp3.1\System.Text.Json.dll
 C:\Users\David\Google Drive\Programmieren\AlwaysUpToDate\AlwaysUpToDate-Test\bin\Release\netcoreapp3.1\AlwaysUpToDate.dll
 C:\Users\David\Google Drive\Programmieren\AlwaysUpToDate\AlwaysUpToDate-Test\bin\Release\netcoreapp3.1\AlwaysUpToDate.pdb
-C:\Users\David\Google Drive\Programmieren\AlwaysUpToDate\AlwaysUpToDate-Test\obj\Release\netcoreapp3.1\AlwaysUpToDate-Test.csprojAssemblyReference.cache
 C:\Users\David\Google Drive\Programmieren\AlwaysUpToDate\AlwaysUpToDate-Test\obj\Release\netcoreapp3.1\AlwaysUpToDate-Test.AssemblyInfoInputs.cache
 C:\Users\David\Google Drive\Programmieren\AlwaysUpToDate\AlwaysUpToDate-Test\obj\Release\netcoreapp3.1\AlwaysUpToDate-Test.AssemblyInfo.cs
 C:\Users\David\Google Drive\Programmieren\AlwaysUpToDate\AlwaysUpToDate-Test\obj\Release\netcoreapp3.1\AlwaysUpToDate-Test.csproj.CoreCompileInputs.cache
@@ -17,3 +16,4 @@ C:\Users\David\Google Drive\Programmieren\AlwaysUpToDate\AlwaysUpToDate-Test\obj
 C:\Users\David\Google Drive\Programmieren\AlwaysUpToDate\AlwaysUpToDate-Test\obj\Release\netcoreapp3.1\AlwaysUpToDate-Test.dll
 C:\Users\David\Google Drive\Programmieren\AlwaysUpToDate\AlwaysUpToDate-Test\obj\Release\netcoreapp3.1\AlwaysUpToDate-Test.pdb
 C:\Users\David\Google Drive\Programmieren\AlwaysUpToDate\AlwaysUpToDate-Test\obj\Release\netcoreapp3.1\AlwaysUpToDate-Test.genruntimeconfig.cache
+C:\Users\David\Google Drive\Programmieren\AlwaysUpToDate\AlwaysUpToDate-Test\obj\Release\netcoreapp3.1\AlwaysUpToDate-Test.csproj.AssemblyReference.cache

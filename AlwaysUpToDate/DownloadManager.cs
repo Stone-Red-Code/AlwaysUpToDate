@@ -20,6 +20,14 @@ namespace AlwaysUpToDate
 
         public event UpdateAvalibleHandler UpdateAvailible;
 
+        public delegate void NoUpdateAvalibleHandler();
+
+        public event NoUpdateAvalibleHandler NoUpdateAvailible;
+
+        public delegate void ExceptionHandler(Exception exception);
+
+        public event ExceptionHandler OnException;
+
         private readonly Timer updateTimer = new Timer();
         private readonly string updateInfoUrl;
         private readonly string installPath;
@@ -58,124 +66,162 @@ namespace AlwaysUpToDate
 
         public async void UpdateTimer_Elapsed(object sender, ElapsedEventArgs e)
         {
-            using HttpClient client = new HttpClient();
-            HttpResponseMessage response = await client.GetAsync(updateInfoUrl);
-
-            Stream stream = await response.Content.ReadAsStreamAsync();
-            UpdateInfo updateInfo = await JsonSerializer.DeserializeAsync<UpdateInfo>(stream);
-
-            Version assemblyVersion = Assembly.GetEntryAssembly().GetName().Version;
-            bool succes = Version.TryParse(updateInfo.Version, out Version version);
-
-            if (!succes)
-                return;
-
-            if (version > assemblyVersion && !updaing)
+            try
             {
-                updateUrl = updateInfo.FileUrl;
-                if (!updateInfo.Mandatory)
+                using HttpClient client = new HttpClient();
+                HttpResponseMessage response = await client.GetAsync(updateInfoUrl);
+
+                Stream stream = await response.Content.ReadAsStreamAsync();
+                UpdateInfo updateInfo = await JsonSerializer.DeserializeAsync<UpdateInfo>(stream);
+
+                Version assemblyVersion = Assembly.GetEntryAssembly().GetName().Version;
+                bool succes = Version.TryParse(updateInfo.Version, out Version version);
+
+                if (!succes)
+                    return;
+
+                if (version > assemblyVersion && !updaing)
                 {
-                    UpdateAvailible(updateInfo.Version, updateInfo.AdditionalInformation);
+                    updateUrl = updateInfo.FileUrl;
+                    if (!updateInfo.Mandatory)
+                    {
+                        if (UpdateAvailible != null)
+                            UpdateAvailible(updateInfo.Version, updateInfo.AdditionalInformation);
+                    }
+                    else
+                    {
+                        Update();
+                    }
                 }
                 else
                 {
-                    Update();
+                    if (NoUpdateAvailible != null)
+                        NoUpdateAvailible();
                 }
+            }
+            catch (Exception ex)
+            {
+                if (OnException != null)
+                    OnException(ex);
             }
         }
 
         private async Task DownloadFile()
         {
-            updateTimer.Stop();
-            updaing = true;
-            using HttpClient client = new HttpClient();
+            try
+            {
+                updateTimer.Stop();
+                updaing = true;
+                using HttpClient client = new HttpClient();
 
-            HttpResponseMessage response = client.GetAsync(updateUrl).Result;
-            using Stream contentStream = response.Content.ReadAsStreamAsync().Result;
-            await ProcessContentStream(response.Content.Headers.ContentLength, contentStream);
+                HttpResponseMessage response = client.GetAsync(updateUrl).Result;
+                using Stream contentStream = response.Content.ReadAsStreamAsync().Result;
+                await ProcessContentStream(response.Content.Headers.ContentLength, contentStream);
+            }
+            catch (Exception ex)
+            {
+                if (OnException != null)
+                    OnException(ex);
+            }
         }
 
         private void ExtractZipFile()
         {
-            ZipArchive zipArchive = ZipFile.OpenRead(Path.Join(installPath, "Update.zip"));
-            string executablePath = Process.GetCurrentProcess().MainModule.FileName;
-            Console.WriteLine(executablePath);
-
-            foreach (ZipArchiveEntry entry in zipArchive.Entries)
+            try
             {
-                if (File.Exists(Path.Join(installPath, entry.FullName)))
-                {
-                    string moveName = entry.FullName;
-                    while (File.Exists(Path.Join(installPath, moveName)))
-                    {
-                        moveName += "_OLD_";
-                    }
-                    File.Move(Path.Join(installPath, entry.FullName), Path.Join(installPath, moveName));
-                }
-                if (entry.FullName.EndsWith("/"))
-                {
-                    if (!Directory.Exists(Path.Join(installPath, entry.FullName)))
-                        Directory.CreateDirectory(Path.Join(installPath, entry.FullName));
-                }
-                else
-                {
-                    entry.ExtractToFile(Path.Join(installPath, entry.FullName), true);
-                }
-            }
-            zipArchive.Dispose();
+                ZipArchive zipArchive = ZipFile.OpenRead(Path.Join(installPath, "Update.zip"));
+                string executablePath = Process.GetCurrentProcess().MainModule.FileName;
+                Console.WriteLine(executablePath);
 
-            foreach (string filePath in Directory.GetFiles(installPath, "*.*", SearchOption.AllDirectories))
+                foreach (ZipArchiveEntry entry in zipArchive.Entries)
+                {
+                    if (File.Exists(Path.Join(installPath, entry.FullName)))
+                    {
+                        string moveName = entry.FullName;
+                        while (File.Exists(Path.Join(installPath, moveName)))
+                        {
+                            moveName += "_OLD_";
+                        }
+                        File.Move(Path.Join(installPath, entry.FullName), Path.Join(installPath, moveName));
+                    }
+                    if (entry.FullName.EndsWith("/"))
+                    {
+                        if (!Directory.Exists(Path.Join(installPath, entry.FullName)))
+                            Directory.CreateDirectory(Path.Join(installPath, entry.FullName));
+                    }
+                    else
+                    {
+                        entry.ExtractToFile(Path.Join(installPath, entry.FullName), true);
+                    }
+                }
+                zipArchive.Dispose();
+
+                foreach (string filePath in Directory.GetFiles(installPath, "*.*", SearchOption.AllDirectories))
+                {
+                    if (filePath.Contains("_OLD_"))
+                    {
+                        try
+                        {
+                            File.Delete(filePath);
+                        }
+                        catch (Exception ex)
+                        {
+                            Debug.WriteLine(ex);
+                        }
+                    }
+                }
+
+                File.Delete(Path.Join(installPath, "Update.zip"));
+                Process.Start(executablePath);
+            }
+            catch (Exception ex)
             {
-                if (filePath.Contains("_OLD_"))
-                {
-                    try
-                    {
-                        File.Delete(filePath);
-                    }
-                    catch (Exception ex)
-                    {
-                        Debug.WriteLine(ex);
-                    }
-                }
+                if (OnException != null)
+                    OnException(ex);
             }
-
-            File.Delete(Path.Join(installPath, "Update.zip"));
-            Process.Start(executablePath);
             Environment.Exit(0);
         }
 
         private async Task ProcessContentStream(long? totalDownloadSize, Stream contentStream)
         {
-            long totalBytesRead = 0;
-            int readCount = 0;
-            byte[] buffer = new byte[8192];
-            bool isMoreToRead = true;
-
-            using var fileStream = new FileStream($"{installPath}Update.zip", FileMode.Create, FileAccess.Write, FileShare.None, 8192, true);
-            do
+            try
             {
-                int bytesRead = contentStream.ReadAsync(buffer, 0, buffer.Length).Result;
-                if (bytesRead == 0)
+                long totalBytesRead = 0;
+                int readCount = 0;
+                byte[] buffer = new byte[8192];
+                bool isMoreToRead = true;
+
+                using var fileStream = new FileStream($"{installPath}Update.zip", FileMode.Create, FileAccess.Write, FileShare.None, 8192, true);
+                do
                 {
-                    isMoreToRead = false;
-                    TriggerProgressChanged(totalDownloadSize, totalBytesRead);
-                    continue;
+                    int bytesRead = contentStream.ReadAsync(buffer, 0, buffer.Length).Result;
+                    if (bytesRead == 0)
+                    {
+                        isMoreToRead = false;
+                        TriggerProgressChanged(totalDownloadSize, totalBytesRead);
+                        continue;
+                    }
+
+                    await fileStream.WriteAsync(buffer, 0, bytesRead);
+
+                    totalBytesRead += bytesRead;
+                    readCount += 1;
+
+                    if (readCount >= 10)
+                    {
+                        readCount = 0;
+                        TriggerProgressChanged(totalDownloadSize, totalBytesRead);
+                    }
                 }
-
-                await fileStream.WriteAsync(buffer, 0, bytesRead);
-
-                totalBytesRead += bytesRead;
-                readCount += 1;
-
-                if (readCount >= 10)
-                {
-                    readCount = 0;
-                    TriggerProgressChanged(totalDownloadSize, totalBytesRead);
-                }
+                while (isMoreToRead);
+                fileStream.Close();
+                ExtractZipFile();
             }
-            while (isMoreToRead);
-            fileStream.Close();
-            ExtractZipFile();
+            catch (Exception ex)
+            {
+                if (OnException != null)
+                    OnException(ex);
+            }
         }
 
         private void TriggerProgressChanged(long? totalDownloadSize, long totalBytesRead)
@@ -187,7 +233,8 @@ namespace AlwaysUpToDate
             if (totalDownloadSize.HasValue)
                 progressPercentage = Math.Round((double)totalBytesRead / totalDownloadSize.Value * 100, 2);
 
-            ProgressChanged(totalDownloadSize, totalBytesRead, progressPercentage);
+            if (ProgressChanged != null)
+                ProgressChanged(totalDownloadSize, totalBytesRead, progressPercentage);
         }
     }
 }

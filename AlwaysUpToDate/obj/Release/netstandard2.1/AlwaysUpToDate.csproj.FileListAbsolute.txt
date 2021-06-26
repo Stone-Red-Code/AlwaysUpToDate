@@ -6,4 +6,4 @@ C:\Users\David\Google Drive\Programmieren\AlwaysUpToDate\AlwaysUpToDate\obj\Rele
 C:\Users\David\Google Drive\Programmieren\AlwaysUpToDate\AlwaysUpToDate\obj\Release\netstandard2.1\AlwaysUpToDate.csproj.CoreCompileInputs.cache
 C:\Users\David\Google Drive\Programmieren\AlwaysUpToDate\AlwaysUpToDate\obj\Release\netstandard2.1\AlwaysUpToDate.dll
 C:\Users\David\Google Drive\Programmieren\AlwaysUpToDate\AlwaysUpToDate\obj\Release\netstandard2.1\AlwaysUpToDate.pdb
-C:\Users\David\Google Drive\Programmieren\AlwaysUpToDate\AlwaysUpToDate\obj\Release\netstandard2.1\AlwaysUpToDate.csprojAssemblyReference.cache
+C:\Users\David\Google Drive\Programmieren\AlwaysUpToDate\AlwaysUpToDate\obj\Release\netstandard2.1\AlwaysUpToDate.csproj.AssemblyReference.cache

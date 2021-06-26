@@ -1,18 +1,18 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <TargetFramework>netstandard2.1</TargetFramework>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
     <PackageLicenseFile>LICENSE</PackageLicenseFile>
-    <Version>1.0.0.2</Version>
+    <Version>1.0.0.4</Version>
     <RepositoryUrl>https://github.com/Stone-Red-Code/AlwaysUpToDate</RepositoryUrl>
     <Description>A simple .NET auto updater</Description>
     <NeutralLanguage>en</NeutralLanguage>
     <Company>Stone_Red</Company>
     <Authors>Stone_Red</Authors>
-    <AssemblyVersion>1.0.0.2</AssemblyVersion>
-    <FileVersion>1.0.0.2</FileVersion>
+    <AssemblyVersion>1.0.0.4</AssemblyVersion>
+    <FileVersion>1.0.0.4</FileVersion>
     <PackageTags>Updater, AutoUpdate, Auto, C#</PackageTags>
   </PropertyGroup>
 
@@ -26,5 +26,4 @@
       <PackagePath></PackagePath>
     </None>
   </ItemGroup>
-
 </Project>
