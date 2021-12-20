@@ -39,7 +39,7 @@ While extracting the zip file all the files that have the same name/path as in t
 
 ### Creating new `Updater` and starting it
 ```cs                           
-Updater downloader = new Updater(
+Updater updater = new Updater(
 new TimeSpan(0, 0, 1), //Update interval
 "https://raw.githubusercontent.com/Stone-Red-Code/Test/main/test.json", //Json file url
 "./" //Install path
@@ -53,11 +53,11 @@ updater.Start();
     updater.UpdateAvailible += Updater_UpdateAvailible;
 }
 
-private static void Downloader_UpdateAvailible(string version, string additionalInformationUrl)
+private static void Updater_UpdateAvailible(string version, string additionalInformationUrl)
 {
 }
 
-private static void Downloader_ProgressChanged(long? totalFileSize, long totalBytesDownloaded, double? progressPercentage)
+private static void Updater_ProgressChanged(long? totalFileSize, long totalBytesDownloaded, double? progressPercentage)
 {
 }
 ```
