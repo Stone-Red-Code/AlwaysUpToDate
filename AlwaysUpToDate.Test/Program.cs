@@ -11,6 +11,7 @@ internal class Program
     {
         updater.ProgressChanged += Updater_ProgressChanged;
         updater.UpdateAvailable += Updater_UpdateAvailable;
+        updater.UpdateStarted += Updater_UpdateStarted;
         updater.NoUpdateAvailable += Updater_NoUpdateAvailable;
         updater.OnException += Updater_OnException;
         updater.Start();
@@ -40,6 +41,11 @@ internal class Program
     private static void Updater_ProgressChanged(UpdateStep step, long? totalItems, long itemsProcessed, double? progressPercentage)
     {
         Console.WriteLine($"[{step}] {itemsProcessed}/{totalItems}  {progressPercentage}%");
+    }
+
+    private static void Updater_UpdateStarted(string version)
+    {
+        Console.WriteLine($"Starting update to version {version}...");
     }
 
     private static void Updater_NoUpdateAvailable()

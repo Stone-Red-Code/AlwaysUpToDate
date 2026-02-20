@@ -66,6 +66,17 @@ namespace AlwaysUpToDate
         /// </summary>
         public event ExceptionHandler OnException;
 
+        /// <summary>
+        /// Represents the method that will handle notifications when the update process begins.
+        /// </summary>
+        /// <param name="version">The version string of the update being installed.</param>
+        public delegate void UpdateStartedHandler(string version);
+
+        /// <summary>
+        /// Occurs once when the update download begins, before the first <see cref="ProgressChanged"/> event.
+        /// </summary>
+        public event UpdateStartedHandler UpdateStarted;
+
         private static readonly XmlSerializer manifestSerializer = new XmlSerializer(typeof(UpdateManifest));
         private readonly HttpClient httpClient = new HttpClient();
         private readonly System.Timers.Timer updateTimer = new System.Timers.Timer();
@@ -241,6 +252,8 @@ namespace AlwaysUpToDate
             {
                 updateTimer.Stop();
                 _ = Interlocked.Exchange(ref updating, 1);
+
+                UpdateStarted?.Invoke(pendingUpdateItem?.Version);
 
                 using HttpResponseMessage response = await httpClient.GetAsync(updateUrl);
                 _ = response.EnsureSuccessStatusCode();

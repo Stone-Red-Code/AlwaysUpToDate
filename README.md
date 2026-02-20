@@ -51,9 +51,14 @@ updater.Start();
 ...
     updater.ProgressChanged += Updater_ProgressChanged;
     updater.UpdateAvailible += Updater_UpdateAvailible;
+    updater.UpdateStarted += Updater_UpdateStarted;
 }
 
 private static void Updater_UpdateAvailible(string version, string additionalInformationUrl)
+{
+}
+
+private static void Updater_UpdateStarted(string version)
 {
 }
 
