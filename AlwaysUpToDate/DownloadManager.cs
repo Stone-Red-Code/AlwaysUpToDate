@@ -13,22 +13,57 @@ using System.Xml.Serialization;
 
 namespace AlwaysUpToDate
 {
+    /// <summary>
+    /// Provides automatic update checking, downloading, verification, extraction, and application restart.
+    /// Periodically polls a remote XML manifest for new versions and manages the full update lifecycle.
+    /// </summary>
     public class Updater : IDisposable
     {
+        /// <summary>
+        /// Represents the method that will handle update progress notifications.
+        /// </summary>
+        /// <param name="step">The current phase of the update process.</param>
+        /// <param name="totalItems">The total number of items to process in this step, or <see langword="null"/> if unknown.</param>
+        /// <param name="itemsProcessed">The number of items processed so far in this step.</param>
+        /// <param name="progressPercentage">The progress percentage (0–100), or <see langword="null"/> if <paramref name="totalItems"/> is unknown.</param>
         public delegate void UpdaterChangedHandler(UpdateStep step, long? totalItems, long itemsProcessed, double? progressPercentage);
 
+        /// <summary>
+        /// Occurs when progress is made during any phase of the update process.
+        /// </summary>
         public event UpdaterChangedHandler ProgressChanged;
 
+        /// <summary>
+        /// Represents the method that will handle notifications when a non-mandatory update is available.
+        /// </summary>
+        /// <param name="version">The version string of the available update.</param>
+        /// <param name="changelogUrl">An optional URL pointing to the changelog, or <see langword="null"/> if not provided.</param>
         public delegate void UpdateAvailableHandler(string version, string changelogUrl);
 
+        /// <summary>
+        /// Occurs when a non-mandatory update is available. Call <see cref="Update"/> to begin downloading.
+        /// </summary>
         public event UpdateAvailableHandler UpdateAvailable;
 
+        /// <summary>
+        /// Represents the method that will handle notifications when no update is available.
+        /// </summary>
         public delegate void NoUpdateAvailableHandler();
 
+        /// <summary>
+        /// Occurs when the remote manifest version is not newer than the current assembly version.
+        /// </summary>
         public event NoUpdateAvailableHandler NoUpdateAvailable;
 
+        /// <summary>
+        /// Represents the method that will handle exceptions raised during the update process.
+        /// </summary>
+        /// <param name="exception">The exception that occurred.</param>
         public delegate void ExceptionHandler(Exception exception);
 
+        /// <summary>
+        /// Occurs when an exception is caught during update checking, downloading, extraction, or verification.
+        /// </summary>
         public event ExceptionHandler OnException;
 
         private static readonly XmlSerializer manifestSerializer = new XmlSerializer(typeof(UpdateManifest));
@@ -41,17 +76,29 @@ namespace AlwaysUpToDate
         private int updating;
         private bool disposed;
 
+        /// <inheritdoc cref="Updater(TimeSpan, string, string, bool)"/>
         public Updater(TimeSpan interval, Uri updateInfoUri, bool onlyUpdateOnce = false) : this(interval, updateInfoUri?.ToString(), "./", onlyUpdateOnce)
         {
         }
+
+        /// <inheritdoc cref="Updater(TimeSpan, string, string, bool)"/>
         public Updater(TimeSpan interval, Uri updateInfoUri, string installPath = "./", bool onlyUpdateOnce = false) : this(interval, updateInfoUri?.ToString(), installPath, onlyUpdateOnce)
         {
         }
 
+        /// <inheritdoc cref="Updater(TimeSpan, string, string, bool)"/>
         public Updater(TimeSpan interval, string updateInfoUrl, bool onlyUpdateOnce = false) : this(interval, updateInfoUrl, "./", onlyUpdateOnce)
         {
         }
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="Updater"/> class.
+        /// </summary>
+        /// <param name="interval">The interval between automatic update checks. Use <see cref="TimeSpan.Zero"/> to disable periodic checks.</param>
+        /// <param name="updateInfoUrl">The URL of the remote XML update manifest.</param>
+        /// <param name="installPath">The local directory where the update will be extracted. Defaults to the current directory.</param>
+        /// <param name="onlyUpdateOnce">If <see langword="true"/>, performs a single update check on <see cref="Start"/> without subscribing to the periodic timer.</param>
+        /// <exception cref="ArgumentNullException"><paramref name="updateInfoUrl"/> or <paramref name="installPath"/> is <see langword="null"/>.</exception>
         public Updater(TimeSpan interval, string updateInfoUrl, string installPath = "./", bool onlyUpdateOnce = false)
         {
             this.updateInfoUrl = updateInfoUrl ?? throw new ArgumentNullException(nameof(updateInfoUrl));
@@ -68,6 +115,10 @@ namespace AlwaysUpToDate
             }
         }
 
+        /// <summary>
+        /// Starts the updater. Performs an immediate update check and, if a periodic interval was configured, begins recurring checks.
+        /// </summary>
+        /// <exception cref="ObjectDisposedException">The updater has been disposed.</exception>
         public void Start()
         {
             ThrowIfDisposed();
@@ -79,12 +130,22 @@ namespace AlwaysUpToDate
             UpdateTimer_Elapsed(null, null);
         }
 
+        /// <summary>
+        /// Stops periodic update checking. Does not cancel an update that is already in progress.
+        /// </summary>
+        /// <exception cref="ObjectDisposedException">The updater has been disposed.</exception>
         public void Stop()
         {
             ThrowIfDisposed();
             updateTimer.Stop();
         }
 
+        /// <summary>
+        /// Downloads and installs the available update. This method is typically called from the <see cref="UpdateAvailable"/> handler.
+        /// If an update is already in progress or no update URL is available, the call is ignored.
+        /// </summary>
+        /// <returns>A task that represents the asynchronous update operation.</returns>
+        /// <exception cref="ObjectDisposedException">The updater has been disposed.</exception>
         public async Task Update()
         {
             ThrowIfDisposed();
@@ -387,12 +448,19 @@ namespace AlwaysUpToDate
             }
         }
 
+        /// <summary>
+        /// Releases all resources used by the <see cref="Updater"/>.
+        /// </summary>
         public void Dispose()
         {
             Dispose(true);
             GC.SuppressFinalize(this);
         }
 
+        /// <summary>
+        /// Releases the unmanaged resources used by the <see cref="Updater"/> and optionally releases the managed resources.
+        /// </summary>
+        /// <param name="disposing"><see langword="true"/> to release both managed and unmanaged resources; <see langword="false"/> to release only unmanaged resources.</param>
         protected virtual void Dispose(bool disposing)
         {
             if (!disposed)
