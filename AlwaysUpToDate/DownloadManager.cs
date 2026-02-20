@@ -26,7 +26,7 @@ namespace AlwaysUpToDate
         /// <param name="totalItems">The total number of items to process in this step, or <see langword="null"/> if unknown.</param>
         /// <param name="itemsProcessed">The number of items processed so far in this step.</param>
         /// <param name="progressPercentage">The progress percentage (0–100), or <see langword="null"/> if <paramref name="totalItems"/> is unknown.</param>
-        public delegate void UpdaterChangedHandler(UpdateStep step, long? totalItems, long itemsProcessed, double? progressPercentage);
+        public delegate void UpdaterChangedHandler(UpdateStep step, long itemsProcessed, long? totalItems, double? progressPercentage);
 
         /// <summary>
         /// Occurs when progress is made during any phase of the update process.
@@ -450,7 +450,7 @@ namespace AlwaysUpToDate
                 progressPercentage = Math.Round((double)totalProcessed / totalSize.Value * 100, 2);
             }
 
-            ProgressChanged?.Invoke(step, totalSize, totalProcessed, progressPercentage);
+            ProgressChanged?.Invoke(step, totalProcessed, totalSize, progressPercentage);
         }
 
         private void ThrowIfDisposed()

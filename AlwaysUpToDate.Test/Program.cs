@@ -38,7 +38,7 @@ internal class Program
         }
     }
 
-    private static void Updater_ProgressChanged(UpdateStep step, long? totalItems, long itemsProcessed, double? progressPercentage)
+    private static void Updater_ProgressChanged(UpdateStep step, long itemsProcessed, long? totalItems, double? progressPercentage)
     {
         Console.WriteLine($"[{step}] {itemsProcessed}/{totalItems}  {progressPercentage}%");
     }
