@@ -65,19 +65,19 @@ namespace AlwaysUpToDate
     public enum HashAlgorithmType
     {
         /// <summary>SHA-1 (default).</summary>
-        [XmlEnum("sha1")]
+        [XmlEnum("SHA1")]
         SHA1,
 
         /// <summary>MD5.</summary>
-        [XmlEnum("md5")]
+        [XmlEnum("MD5")]
         MD5,
 
         /// <summary>SHA-256.</summary>
-        [XmlEnum("sha256")]
+        [XmlEnum("SHA256")]
         SHA256,
 
         /// <summary>SHA-512.</summary>
-        [XmlEnum("sha512")]
+        [XmlEnum("SHA512")]
         SHA512,
     }
 
