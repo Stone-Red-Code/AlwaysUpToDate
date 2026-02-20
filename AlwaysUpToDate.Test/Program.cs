@@ -37,9 +37,9 @@ internal class Program
         }
     }
 
-    private static void Updater_ProgressChanged(long? totalFileSize, long totalBytesDownloaded, double? progressPercentage)
+    private static void Updater_ProgressChanged(UpdateStep step, long? totalItems, long itemsProcessed, double? progressPercentage)
     {
-        Console.WriteLine($"{totalBytesDownloaded}/{totalFileSize}  {progressPercentage}%");
+        Console.WriteLine($"[{step}] {itemsProcessed}/{totalItems}  {progressPercentage}%");
     }
 
     private static void Updater_NoUpdateAvailable()

@@ -6,15 +6,16 @@ using System.Linq;
 using System.Net.Http;
 using System.Reflection;
 using System.Runtime.InteropServices;
+using System.Security.Cryptography;
+using System.Threading;
 using System.Threading.Tasks;
-using System.Timers;
 using System.Xml.Serialization;
 
 namespace AlwaysUpToDate
 {
     public class Updater : IDisposable
     {
-        public delegate void UpdaterChangedHandler(long? totalFileSize, long totalBytesDownloaded, double? progressPercentage);
+        public delegate void UpdaterChangedHandler(UpdateStep step, long? totalItems, long itemsProcessed, double? progressPercentage);
 
         public event UpdaterChangedHandler ProgressChanged;
 
@@ -32,11 +33,12 @@ namespace AlwaysUpToDate
 
         private static readonly XmlSerializer manifestSerializer = new XmlSerializer(typeof(UpdateManifest));
         private readonly HttpClient httpClient = new HttpClient();
-        private readonly Timer updateTimer = new Timer();
+        private readonly System.Timers.Timer updateTimer = new System.Timers.Timer();
         private readonly string updateInfoUrl;
         private readonly string installPath;
         private string updateUrl;
-        private bool updating;
+        private UpdateItem pendingUpdateItem;
+        private int updating;
         private bool disposed;
 
         public Updater(TimeSpan interval, Uri updateInfoUri, bool onlyUpdateOnce = false) : this(interval, updateInfoUri?.ToString(), "./", onlyUpdateOnce)
@@ -86,14 +88,19 @@ namespace AlwaysUpToDate
         public async Task Update()
         {
             ThrowIfDisposed();
-            if (!string.IsNullOrWhiteSpace(updateUrl) && !updating)
+            if (!string.IsNullOrWhiteSpace(updateUrl) && Interlocked.CompareExchange(ref updating, 1, 0) == 0)
             {
                 await DownloadFile();
             }
         }
 
-        private async void UpdateTimer_Elapsed(object sender, ElapsedEventArgs e)
+        private async void UpdateTimer_Elapsed(object sender, System.Timers.ElapsedEventArgs e)
         {
+            if (Interlocked.CompareExchange(ref updating, 0, 0) != 0)
+            {
+                return;
+            }
+
             try
             {
                 using HttpResponseMessage response = await httpClient.GetAsync(updateInfoUrl);
@@ -110,16 +117,23 @@ namespace AlwaysUpToDate
                     return;
                 }
 
-                Version assemblyVersion = Assembly.GetEntryAssembly().GetName().Version;
+                Assembly entryAssembly = Assembly.GetEntryAssembly();
+                if (entryAssembly == null)
+                {
+                    return;
+                }
+
+                Version assemblyVersion = entryAssembly.GetName().Version;
 
                 if (!Version.TryParse(updateItem.Version, out Version version))
                 {
                     return;
                 }
 
-                if (version > assemblyVersion && !updating)
+                if (version > assemblyVersion && Interlocked.CompareExchange(ref updating, 0, 0) == 0)
                 {
                     updateUrl = updateItem.DownloadUrl;
+                    pendingUpdateItem = updateItem;
                     if (!updateItem.IsMandatory)
                     {
                         UpdateAvailable?.Invoke(updateItem.Version, updateItem.ChangelogUrl);
@@ -165,7 +179,7 @@ namespace AlwaysUpToDate
             try
             {
                 updateTimer.Stop();
-                updating = true;
+                _ = Interlocked.Exchange(ref updating, 1);
 
                 using HttpResponseMessage response = await httpClient.GetAsync(updateUrl);
                 _ = response.EnsureSuccessStatusCode();
@@ -175,6 +189,7 @@ namespace AlwaysUpToDate
             }
             catch (Exception ex)
             {
+                _ = Interlocked.Exchange(ref updating, 0);
                 OnException?.Invoke(ex);
             }
         }
@@ -183,6 +198,17 @@ namespace AlwaysUpToDate
         {
             try
             {
+                string zipPath = Path.Join(installPath, "Update.zip");
+
+                TriggerProgressChanged(UpdateStep.VerifyingChecksum, null, 0);
+                if (!VerifyChecksum(zipPath))
+                {
+                    File.Delete(zipPath);
+                    _ = Interlocked.Exchange(ref updating, 0);
+                    throw new InvalidOperationException("Checksum verification failed for the downloaded update.");
+                }
+                TriggerProgressChanged(UpdateStep.VerifyingChecksum, 1, 1);
+
                 string executablePath = Process.GetCurrentProcess().MainModule?.FileName ?? Assembly.GetEntryAssembly()?.Location;
 
                 if (string.IsNullOrEmpty(executablePath))
@@ -190,25 +216,32 @@ namespace AlwaysUpToDate
                     throw new InvalidOperationException("Unable to determine the executable path.");
                 }
 
-                using (ZipArchive zipArchive = ZipFile.OpenRead(Path.Join(installPath, "Update.zip")))
+                using (ZipArchive zipArchive = ZipFile.OpenRead(zipPath))
                 {
                     string fullInstallPath = Path.GetFullPath(installPath + Path.DirectorySeparatorChar);
+                    long totalEntries = zipArchive.Entries.Count;
+                    long processedEntries = 0;
 
                     foreach (ZipArchiveEntry entry in zipArchive.Entries)
                     {
                         string destinationPath = Path.GetFullPath(Path.Join(installPath, entry.FullName));
                         if (!destinationPath.StartsWith(fullInstallPath, StringComparison.OrdinalIgnoreCase))
                         {
+                            processedEntries++;
                             continue;
                         }
 
                         if (File.Exists(Path.Join(installPath, entry.FullName)))
                         {
-                            string moveName = entry.FullName;
+                            string moveName = Path.GetFileNameWithoutExtension(entry.FullName) + "_OLD_" + Path.GetExtension(entry.FullName);
+                            int counter = 1;
+
                             while (File.Exists(Path.Join(installPath, moveName)))
                             {
-                                moveName += "_OLD_";
+                                moveName = Path.GetFileNameWithoutExtension(entry.FullName) + "_OLD_" + counter + Path.GetExtension(entry.FullName);
+                                counter++;
                             }
+
                             File.Move(Path.Join(installPath, entry.FullName), Path.Join(installPath, moveName));
                         }
 
@@ -223,36 +256,46 @@ namespace AlwaysUpToDate
                         {
                             entry.ExtractToFile(Path.Join(installPath, entry.FullName), true);
                         }
+
+                        processedEntries++;
+                        TriggerProgressChanged(UpdateStep.Extracting, totalEntries, processedEntries);
                     }
                 }
 
-                foreach (string filePath in Directory.GetFiles(installPath, "*.*", SearchOption.AllDirectories))
+                string[] allFiles = Directory.GetFiles(installPath, "*.*", SearchOption.AllDirectories);
+                string[] oldFiles = Array.FindAll(allFiles, f => f.Contains("_OLD_"));
+                long totalOldFiles = oldFiles.Length;
+                long deletedFiles = 0;
+
+                foreach (string filePath in oldFiles)
                 {
-                    if (filePath.Contains("_OLD_"))
+                    try
                     {
-                        try
-                        {
-                            File.Delete(filePath);
-                        }
-                        catch (Exception ex)
-                        {
-                            Debug.WriteLine(ex);
-                        }
+                        File.Delete(filePath);
                     }
+                    catch (Exception ex)
+                    {
+                        Debug.WriteLine(ex);
+                    }
+
+                    deletedFiles++;
+                    TriggerProgressChanged(UpdateStep.CleaningUp, totalOldFiles, deletedFiles);
                 }
 
-                File.Delete(Path.Join(installPath, "Update.zip"));
+                File.Delete(zipPath);
 
-                //if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
-                //{
-                //    Process.Start("chmod", $"+x \"{executablePath}\"")?.WaitForExit();
-                //}
+                TriggerProgressChanged(UpdateStep.Restarting, null, 0);
+
+                if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux) || RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
+                {
+                    Process.Start("chmod", $"+x \"{executablePath}\"")?.WaitForExit();
+                }
 
                 _ = Process.Start(new ProcessStartInfo(executablePath) { UseShellExecute = false });
-                Environment.Exit(0);
             }
             catch (Exception ex)
             {
+                _ = Interlocked.Exchange(ref updating, 0);
                 OnException?.Invoke(ex);
             }
         }
@@ -273,7 +316,7 @@ namespace AlwaysUpToDate
                     if (bytesRead == 0)
                     {
                         isMoreToRead = false;
-                        TriggerProgressChanged(totalDownloadSize, totalBytesRead);
+                        TriggerProgressChanged(UpdateStep.Downloading, totalDownloadSize, totalBytesRead);
                         continue;
                     }
 
@@ -285,7 +328,7 @@ namespace AlwaysUpToDate
                     if (readCount >= 10)
                     {
                         readCount = 0;
-                        TriggerProgressChanged(totalDownloadSize, totalBytesRead);
+                        TriggerProgressChanged(UpdateStep.Downloading, totalDownloadSize, totalBytesRead);
                     }
                 }
                 while (isMoreToRead);
@@ -298,15 +341,42 @@ namespace AlwaysUpToDate
             }
         }
 
-        private void TriggerProgressChanged(long? totalDownloadSize, long totalBytesRead)
+        private bool VerifyChecksum(string filePath)
         {
-            double? progressPercentage = null;
-            if (totalDownloadSize.HasValue)
+            UpdateItem item = pendingUpdateItem;
+            if (item?.Checksum == null || string.IsNullOrWhiteSpace(item.Checksum.Value))
             {
-                progressPercentage = Math.Round((double)totalBytesRead / totalDownloadSize.Value * 100, 2);
+                return true;
             }
 
-            ProgressChanged?.Invoke(totalDownloadSize, totalBytesRead, progressPercentage);
+            using HashAlgorithm algorithm = CreateHashAlgorithm(item.Checksum.Algorithm);
+            using FileStream stream = File.OpenRead(filePath);
+            byte[] hash = algorithm.ComputeHash(stream);
+            string hashString = BitConverter.ToString(hash).Replace("-", "");
+            return string.Equals(hashString, item.Checksum.Value, StringComparison.OrdinalIgnoreCase);
+        }
+
+        private static HashAlgorithm CreateHashAlgorithm(HashAlgorithmType algorithm)
+        {
+            return algorithm switch
+            {
+                HashAlgorithmType.MD5 => MD5.Create(),
+                HashAlgorithmType.SHA256 => SHA256.Create(),
+                HashAlgorithmType.SHA512 => SHA512.Create(),
+                HashAlgorithmType.SHA1 => SHA1.Create(),
+                _ => throw new NotSupportedException($"Hash algorithm '{algorithm}' is not supported."),
+            };
+        }
+
+        private void TriggerProgressChanged(UpdateStep step, long? totalSize, long totalProcessed)
+        {
+            double? progressPercentage = null;
+            if (totalSize.HasValue && totalSize.Value > 0)
+            {
+                progressPercentage = Math.Round((double)totalProcessed / totalSize.Value * 100, 2);
+            }
+
+            ProgressChanged?.Invoke(step, totalSize, totalProcessed, progressPercentage);
         }
 
         private void ThrowIfDisposed()
