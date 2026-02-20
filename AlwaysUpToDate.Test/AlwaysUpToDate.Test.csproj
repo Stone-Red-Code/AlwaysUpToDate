@@ -3,8 +3,8 @@
   <PropertyGroup>
     <OutputType>Exe</OutputType>
     <TargetFramework>net10.0</TargetFramework>
-    <RootNamespace>AlwaysUpToDate_Test</RootNamespace>
-    <StartupObject>AlwaysUpToDate_Test.Program</StartupObject>
+    <RootNamespace>AlwaysUpToDate.Test</RootNamespace>
+    <StartupObject>AlwaysUpToDate.Test.Program</StartupObject>
     <AssemblyVersion>2.0.0.0</AssemblyVersion>
     <FileVersion>2.0.0.0</FileVersion>
     <PackageTags></PackageTags>

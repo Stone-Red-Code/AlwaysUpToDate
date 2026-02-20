@@ -1,109 +1,163 @@
-﻿using System;
-using System.IO;
-using System.Net.Http;
-using System.Timers;
-using System.Text.Json;
-using System.Reflection;
-using System.IO.Compression;
+using System;
 using System.Diagnostics;
+using System.IO;
+using System.IO.Compression;
+using System.Linq;
+using System.Net.Http;
+using System.Reflection;
+using System.Runtime.InteropServices;
 using System.Threading.Tasks;
+using System.Timers;
+using System.Xml.Serialization;
 
 namespace AlwaysUpToDate
 {
-    public class Updater
+    public class Updater : IDisposable
     {
         public delegate void UpdaterChangedHandler(long? totalFileSize, long totalBytesDownloaded, double? progressPercentage);
 
         public event UpdaterChangedHandler ProgressChanged;
 
-        public delegate void UpdateAvalibleHandler(string version, string additionalInformation);
+        public delegate void UpdateAvailableHandler(string version, string changelogUrl);
 
-        public event UpdateAvalibleHandler UpdateAvailible;
+        public event UpdateAvailableHandler UpdateAvailable;
 
-        public delegate void NoUpdateAvalibleHandler();
+        public delegate void NoUpdateAvailableHandler();
 
-        public event NoUpdateAvalibleHandler NoUpdateAvailible;
+        public event NoUpdateAvailableHandler NoUpdateAvailable;
 
         public delegate void ExceptionHandler(Exception exception);
 
         public event ExceptionHandler OnException;
 
+        private static readonly XmlSerializer manifestSerializer = new XmlSerializer(typeof(UpdateManifest));
+        private readonly HttpClient httpClient = new HttpClient();
         private readonly Timer updateTimer = new Timer();
         private readonly string updateInfoUrl;
         private readonly string installPath;
         private string updateUrl;
-        private bool updaing = false;
+        private bool updating;
+        private bool disposed;
+
+        public Updater(TimeSpan interval, Uri updateInfoUri, bool onlyUpdateOnce = false) : this(interval, updateInfoUri?.ToString(), "./", onlyUpdateOnce)
+        {
+        }
+        public Updater(TimeSpan interval, Uri updateInfoUri, string installPath = "./", bool onlyUpdateOnce = false) : this(interval, updateInfoUri?.ToString(), installPath, onlyUpdateOnce)
+        {
+        }
+
+        public Updater(TimeSpan interval, string updateInfoUrl, bool onlyUpdateOnce = false) : this(interval, updateInfoUrl, "./", onlyUpdateOnce)
+        {
+        }
 
         public Updater(TimeSpan interval, string updateInfoUrl, string installPath = "./", bool onlyUpdateOnce = false)
         {
-            this.updateInfoUrl = updateInfoUrl;
-            this.installPath = installPath;
+            this.updateInfoUrl = updateInfoUrl ?? throw new ArgumentNullException(nameof(updateInfoUrl));
+            this.installPath = installPath ?? throw new ArgumentNullException(nameof(installPath));
 
             if (interval.TotalMilliseconds > 0)
+            {
                 updateTimer.Interval = interval.TotalMilliseconds;
+            }
 
             if (!onlyUpdateOnce)
+            {
                 updateTimer.Elapsed += UpdateTimer_Elapsed;
+            }
         }
 
         public void Start()
         {
+            ThrowIfDisposed();
             if (updateTimer.Interval > 0)
+            {
                 updateTimer.Start();
+            }
+
             UpdateTimer_Elapsed(null, null);
         }
 
         public void Stop()
         {
+            ThrowIfDisposed();
             updateTimer.Stop();
         }
 
-        public async void Update()
+        public async Task Update()
         {
-            if (!string.IsNullOrWhiteSpace(updateUrl) && !updaing)
+            ThrowIfDisposed();
+            if (!string.IsNullOrWhiteSpace(updateUrl) && !updating)
+            {
                 await DownloadFile();
+            }
         }
 
-        public async void UpdateTimer_Elapsed(object sender, ElapsedEventArgs e)
+        private async void UpdateTimer_Elapsed(object sender, ElapsedEventArgs e)
         {
             try
             {
-                using HttpClient client = new HttpClient();
-                HttpResponseMessage response = await client.GetAsync(updateInfoUrl);
+                using HttpResponseMessage response = await httpClient.GetAsync(updateInfoUrl);
+                _ = response.EnsureSuccessStatusCode();
 
-                Stream stream = await response.Content.ReadAsStreamAsync();
-                UpdateInfo updateInfo = await JsonSerializer.DeserializeAsync<UpdateInfo>(stream);
+                using Stream stream = await response.Content.ReadAsStreamAsync();
+                UpdateManifest manifest = (UpdateManifest)manifestSerializer.Deserialize(stream);
+
+                TargetOS currentOS = GetCurrentOS();
+                UpdateItem updateItem = manifest.Items?.FirstOrDefault(i => i.OS == currentOS);
+
+                if (updateItem == null)
+                {
+                    return;
+                }
 
                 Version assemblyVersion = Assembly.GetEntryAssembly().GetName().Version;
-                bool succes = Version.TryParse(updateInfo.Version, out Version version);
 
-                if (!succes)
-                    return;
-
-                if (version > assemblyVersion && !updaing)
+                if (!Version.TryParse(updateItem.Version, out Version version))
                 {
-                    updateUrl = updateInfo.FileUrl;
-                    if (!updateInfo.Mandatory)
+                    return;
+                }
+
+                if (version > assemblyVersion && !updating)
+                {
+                    updateUrl = updateItem.DownloadUrl;
+                    if (!updateItem.IsMandatory)
                     {
-                        if (UpdateAvailible != null)
-                            UpdateAvailible(updateInfo.Version, updateInfo.AdditionalInformation);
+                        UpdateAvailable?.Invoke(updateItem.Version, updateItem.ChangelogUrl);
                     }
                     else
                     {
-                        Update();
+                        await Update();
                     }
                 }
                 else
                 {
-                    if (NoUpdateAvailible != null)
-                        NoUpdateAvailible();
+                    NoUpdateAvailable?.Invoke();
                 }
             }
             catch (Exception ex)
             {
-                if (OnException != null)
-                    OnException(ex);
+                OnException?.Invoke(ex);
             }
+        }
+
+        private static TargetOS GetCurrentOS()
+        {
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+            {
+                return TargetOS.Windows;
+            }
+
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
+            {
+                return TargetOS.MacOS;
+            }
+
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
+            {
+                return TargetOS.Linux;
+            }
+
+            throw new PlatformNotSupportedException();
         }
 
         private async Task DownloadFile()
@@ -111,17 +165,17 @@ namespace AlwaysUpToDate
             try
             {
                 updateTimer.Stop();
-                updaing = true;
-                using HttpClient client = new HttpClient();
+                updating = true;
 
-                HttpResponseMessage response = client.GetAsync(updateUrl).Result;
-                using Stream contentStream = response.Content.ReadAsStreamAsync().Result;
+                using HttpResponseMessage response = await httpClient.GetAsync(updateUrl);
+                _ = response.EnsureSuccessStatusCode();
+
+                using Stream contentStream = await response.Content.ReadAsStreamAsync();
                 await ProcessContentStream(response.Content.Headers.ContentLength, contentStream);
             }
             catch (Exception ex)
             {
-                if (OnException != null)
-                    OnException(ex);
+                OnException?.Invoke(ex);
             }
         }
 
@@ -129,32 +183,48 @@ namespace AlwaysUpToDate
         {
             try
             {
-                ZipArchive zipArchive = ZipFile.OpenRead(Path.Join(installPath, "Update.zip"));
-                string executablePath = Process.GetCurrentProcess().MainModule.FileName;
-                Console.WriteLine(executablePath);
+                string executablePath = Process.GetCurrentProcess().MainModule?.FileName ?? Assembly.GetEntryAssembly()?.Location;
 
-                foreach (ZipArchiveEntry entry in zipArchive.Entries)
+                if (string.IsNullOrEmpty(executablePath))
                 {
-                    if (File.Exists(Path.Join(installPath, entry.FullName)))
+                    throw new InvalidOperationException("Unable to determine the executable path.");
+                }
+
+                using (ZipArchive zipArchive = ZipFile.OpenRead(Path.Join(installPath, "Update.zip")))
+                {
+                    string fullInstallPath = Path.GetFullPath(installPath + Path.DirectorySeparatorChar);
+
+                    foreach (ZipArchiveEntry entry in zipArchive.Entries)
                     {
-                        string moveName = entry.FullName;
-                        while (File.Exists(Path.Join(installPath, moveName)))
+                        string destinationPath = Path.GetFullPath(Path.Join(installPath, entry.FullName));
+                        if (!destinationPath.StartsWith(fullInstallPath, StringComparison.OrdinalIgnoreCase))
                         {
-                            moveName += "_OLD_";
+                            continue;
                         }
-                        File.Move(Path.Join(installPath, entry.FullName), Path.Join(installPath, moveName));
-                    }
-                    if (entry.FullName.EndsWith("/"))
-                    {
-                        if (!Directory.Exists(Path.Join(installPath, entry.FullName)))
-                            Directory.CreateDirectory(Path.Join(installPath, entry.FullName));
-                    }
-                    else
-                    {
-                        entry.ExtractToFile(Path.Join(installPath, entry.FullName), true);
+
+                        if (File.Exists(Path.Join(installPath, entry.FullName)))
+                        {
+                            string moveName = entry.FullName;
+                            while (File.Exists(Path.Join(installPath, moveName)))
+                            {
+                                moveName += "_OLD_";
+                            }
+                            File.Move(Path.Join(installPath, entry.FullName), Path.Join(installPath, moveName));
+                        }
+
+                        if (entry.FullName.EndsWith('/'))
+                        {
+                            if (!Directory.Exists(Path.Join(installPath, entry.FullName)))
+                            {
+                                _ = Directory.CreateDirectory(Path.Join(installPath, entry.FullName));
+                            }
+                        }
+                        else
+                        {
+                            entry.ExtractToFile(Path.Join(installPath, entry.FullName), true);
+                        }
                     }
                 }
-                zipArchive.Dispose();
 
                 foreach (string filePath in Directory.GetFiles(installPath, "*.*", SearchOption.AllDirectories))
                 {
@@ -172,14 +242,19 @@ namespace AlwaysUpToDate
                 }
 
                 File.Delete(Path.Join(installPath, "Update.zip"));
-                Process.Start(executablePath);
+
+                //if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
+                //{
+                //    Process.Start("chmod", $"+x \"{executablePath}\"")?.WaitForExit();
+                //}
+
+                _ = Process.Start(new ProcessStartInfo(executablePath) { UseShellExecute = false });
+                Environment.Exit(0);
             }
             catch (Exception ex)
             {
-                if (OnException != null)
-                    OnException(ex);
+                OnException?.Invoke(ex);
             }
-            Environment.Exit(0);
         }
 
         private async Task ProcessContentStream(long? totalDownloadSize, Stream contentStream)
@@ -191,10 +266,10 @@ namespace AlwaysUpToDate
                 byte[] buffer = new byte[8192];
                 bool isMoreToRead = true;
 
-                using var fileStream = new FileStream($"{installPath}Update.zip", FileMode.Create, FileAccess.Write, FileShare.None, 8192, true);
+                using FileStream fileStream = new FileStream(Path.Join(installPath, "Update.zip"), FileMode.Create, FileAccess.Write, FileShare.None, 8192, true);
                 do
                 {
-                    int bytesRead = contentStream.ReadAsync(buffer, 0, buffer.Length).Result;
+                    int bytesRead = await contentStream.ReadAsync(buffer, 0, buffer.Length);
                     if (bytesRead == 0)
                     {
                         isMoreToRead = false;
@@ -214,27 +289,51 @@ namespace AlwaysUpToDate
                     }
                 }
                 while (isMoreToRead);
-                fileStream.Close();
+
                 ExtractZipFile();
             }
             catch (Exception ex)
             {
-                if (OnException != null)
-                    OnException(ex);
+                OnException?.Invoke(ex);
             }
         }
 
         private void TriggerProgressChanged(long? totalDownloadSize, long totalBytesRead)
         {
-            if (ProgressChanged == null)
-                return;
-
             double? progressPercentage = null;
             if (totalDownloadSize.HasValue)
+            {
                 progressPercentage = Math.Round((double)totalBytesRead / totalDownloadSize.Value * 100, 2);
+            }
 
-            if (ProgressChanged != null)
-                ProgressChanged(totalDownloadSize, totalBytesRead, progressPercentage);
+            ProgressChanged?.Invoke(totalDownloadSize, totalBytesRead, progressPercentage);
+        }
+
+        private void ThrowIfDisposed()
+        {
+            if (disposed)
+            {
+                throw new ObjectDisposedException(nameof(Updater));
+            }
+        }
+
+        public void Dispose()
+        {
+            Dispose(true);
+            GC.SuppressFinalize(this);
+        }
+
+        protected virtual void Dispose(bool disposing)
+        {
+            if (!disposed)
+            {
+                if (disposing)
+                {
+                    updateTimer.Dispose();
+                    httpClient.Dispose();
+                }
+                disposed = true;
+            }
         }
     }
 }
