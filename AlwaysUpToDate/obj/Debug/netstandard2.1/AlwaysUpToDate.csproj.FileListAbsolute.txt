@@ -1,9 +1,0 @@
-C:\Users\David\Google Drive\Programmieren\AlwaysUpToDate\AlwaysUpToDate\bin\Debug\netstandard2.1\AlwaysUpToDate.deps.json
-C:\Users\David\Google Drive\Programmieren\AlwaysUpToDate\AlwaysUpToDate\bin\Debug\netstandard2.1\AlwaysUpToDate.dll
-C:\Users\David\Google Drive\Programmieren\AlwaysUpToDate\AlwaysUpToDate\bin\Debug\netstandard2.1\AlwaysUpToDate.pdb
-C:\Users\David\Google Drive\Programmieren\AlwaysUpToDate\AlwaysUpToDate\obj\Debug\netstandard2.1\AlwaysUpToDate.csprojAssemblyReference.cache
-C:\Users\David\Google Drive\Programmieren\AlwaysUpToDate\AlwaysUpToDate\obj\Debug\netstandard2.1\AlwaysUpToDate.AssemblyInfoInputs.cache
-C:\Users\David\Google Drive\Programmieren\AlwaysUpToDate\AlwaysUpToDate\obj\Debug\netstandard2.1\AlwaysUpToDate.AssemblyInfo.cs
-C:\Users\David\Google Drive\Programmieren\AlwaysUpToDate\AlwaysUpToDate\obj\Debug\netstandard2.1\AlwaysUpToDate.csproj.CoreCompileInputs.cache
-C:\Users\David\Google Drive\Programmieren\AlwaysUpToDate\AlwaysUpToDate\obj\Debug\netstandard2.1\AlwaysUpToDate.dll
-C:\Users\David\Google Drive\Programmieren\AlwaysUpToDate\AlwaysUpToDate\obj\Debug\netstandard2.1\AlwaysUpToDate.pdb
