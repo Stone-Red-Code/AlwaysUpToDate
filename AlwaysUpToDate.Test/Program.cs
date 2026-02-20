@@ -34,7 +34,7 @@ internal class Program
 
         if (char.ToLower(input) == 'y')
         {
-            await updater.Update();
+            await updater.UpdateAsync();
         }
     }
 

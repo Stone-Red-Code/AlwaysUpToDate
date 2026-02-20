@@ -41,7 +41,7 @@ namespace AlwaysUpToDate
         public delegate void UpdateAvailableHandler(string version, string changelogUrl);
 
         /// <summary>
-        /// Occurs when a non-mandatory update is available. Call <see cref="Update"/> to begin downloading.
+        /// Occurs when a non-mandatory update is available. Call <see cref="UpdateAsync"/> to begin downloading.
         /// </summary>
         public event UpdateAvailableHandler UpdateAvailable;
 
@@ -157,7 +157,7 @@ namespace AlwaysUpToDate
         /// </summary>
         /// <returns>A task that represents the asynchronous update operation.</returns>
         /// <exception cref="ObjectDisposedException">The updater has been disposed.</exception>
-        public async Task Update()
+        public async Task UpdateAsync()
         {
             ThrowIfDisposed();
             if (!string.IsNullOrWhiteSpace(updateUrl) && Interlocked.CompareExchange(ref updating, 1, 0) == 0)
@@ -212,7 +212,7 @@ namespace AlwaysUpToDate
                     }
                     else
                     {
-                        await Update();
+                        await UpdateAsync();
                     }
                 }
                 else
