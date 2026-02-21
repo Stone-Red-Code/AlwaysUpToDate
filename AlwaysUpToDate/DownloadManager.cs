@@ -178,11 +178,13 @@ namespace AlwaysUpToDate
                 using HttpResponseMessage response = await httpClient.GetAsync(updateInfoUrl);
                 _ = response.EnsureSuccessStatusCode();
 
-                using Stream stream = await response.Content.ReadAsStreamAsync();
-                UpdateManifest manifest = (UpdateManifest)manifestSerializer.Deserialize(stream);
+                string xmlManifest = await response.Content.ReadAsStringAsync();
+                UpdateManifest manifest = (UpdateManifest)manifestSerializer.Deserialize(new StringReader(xmlManifest));
 
                 TargetOS currentOS = GetCurrentOS();
-                UpdateItem updateItem = manifest.Items?.FirstOrDefault(i => i.OS == currentOS);
+                TargetArchitecture currentArch = GetCurrentArchitecture();
+                UpdateItem updateItem = manifest.Items?.FirstOrDefault(i => i.OS == currentOS && i.Architecture == currentArch)
+                    ?? manifest.Items?.FirstOrDefault(i => i.OS == currentOS && i.Architecture == TargetArchitecture.Any);
 
                 if (updateItem == null)
                 {
@@ -246,6 +248,18 @@ namespace AlwaysUpToDate
             throw new PlatformNotSupportedException();
         }
 
+        private static TargetArchitecture GetCurrentArchitecture()
+        {
+            return RuntimeInformation.ProcessArchitecture switch
+            {
+                Architecture.X86 => TargetArchitecture.X86,
+                Architecture.X64 => TargetArchitecture.X64,
+                Architecture.Arm => TargetArchitecture.Arm,
+                Architecture.Arm64 => TargetArchitecture.Arm64,
+                _ => TargetArchitecture.Any,
+            };
+        }
+
         private async Task DownloadFile()
         {
             try
@@ -254,6 +268,8 @@ namespace AlwaysUpToDate
                 _ = Interlocked.Exchange(ref updating, 1);
 
                 UpdateStarted?.Invoke(pendingUpdateItem?.Version);
+
+                TriggerProgressChanged(UpdateStep.Downloading,  null, 0);
 
                 using HttpResponseMessage response = await httpClient.GetAsync(updateUrl);
                 _ = response.EnsureSuccessStatusCode();
@@ -366,6 +382,7 @@ namespace AlwaysUpToDate
                 }
 
                 _ = Process.Start(new ProcessStartInfo(executablePath) { UseShellExecute = false });
+                Environment.Exit(0);
             }
             catch (Exception ex)
             {
@@ -383,29 +400,31 @@ namespace AlwaysUpToDate
                 byte[] buffer = new byte[8192];
                 bool isMoreToRead = true;
 
-                using FileStream fileStream = new FileStream(Path.Join(installPath, "Update.zip"), FileMode.Create, FileAccess.Write, FileShare.None, 8192, true);
-                do
+                using (FileStream fileStream = new FileStream(Path.Join(installPath, "Update.zip"), FileMode.Create, FileAccess.Write, FileShare.None, 8192, true))
                 {
-                    int bytesRead = await contentStream.ReadAsync(buffer, 0, buffer.Length);
-                    if (bytesRead == 0)
+                    do
                     {
-                        isMoreToRead = false;
-                        TriggerProgressChanged(UpdateStep.Downloading, totalDownloadSize, totalBytesRead);
-                        continue;
+                        int bytesRead = await contentStream.ReadAsync(buffer, 0, buffer.Length);
+                        if (bytesRead == 0)
+                        {
+                            isMoreToRead = false;
+                            TriggerProgressChanged(UpdateStep.Downloading, totalDownloadSize, totalBytesRead);
+                            continue;
+                        }
+
+                        await fileStream.WriteAsync(buffer, 0, bytesRead);
+
+                        totalBytesRead += bytesRead;
+                        readCount += 1;
+
+                        if (readCount >= 10)
+                        {
+                            readCount = 0;
+                            TriggerProgressChanged(UpdateStep.Downloading, totalDownloadSize, totalBytesRead);
+                        }
                     }
-
-                    await fileStream.WriteAsync(buffer, 0, bytesRead);
-
-                    totalBytesRead += bytesRead;
-                    readCount += 1;
-
-                    if (readCount >= 10)
-                    {
-                        readCount = 0;
-                        TriggerProgressChanged(UpdateStep.Downloading, totalDownloadSize, totalBytesRead);
-                    }
+                    while (isMoreToRead);
                 }
-                while (isMoreToRead);
 
                 ExtractZipFile();
             }

@@ -5,7 +5,7 @@ namespace AlwaysUpToDate.Test;
 
 internal class Program
 {
-    private static readonly Updater updater = new Updater(new TimeSpan(0, 0, 1), "https://raw.githubusercontent.com/Stone-Red-Code/Test/main/test.xml", true);
+    private static readonly Updater updater = new Updater(new TimeSpan(0, 0, 1), "https://echohub.voidcube.cloud/api/app/version", true);
 
     private static async Task Main(string[] args)
     {
