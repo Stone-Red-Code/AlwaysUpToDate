@@ -32,7 +32,7 @@ The manifest is an XML file with one `<item>` per target platform.
 | `os` | Yes | Target platform. Can be just an OS (`windows`, `linux`, `macos`/`osx`) or a combined OS-architecture value (`osx-arm64`, `windows-x64`, `linux-arm64`, etc.). |
 | `arch` | No | Target architecture (`x86`, `x64`, `arm`, `arm64`, `any`). Overrides any architecture embedded in `<os>`. Only needed when using the separate-element format. |
 | `version` | Yes | Version in `X.X.X.X` format. |
-| `url` | Yes | URL to the update ZIP file. |
+| `url` | Yes | URL to the update ZIP file. Supports an optional `rootPath` attribute to specify a path prefix inside the ZIP to treat as the extraction root (e.g., `<url rootPath="release/net8.0">...</url>`). When omitted, the updater auto-detects a single common root folder. |
 | `changelog` | No | URL pointing to a changelog. Passed to the `UpdateAvailable` event. |
 | `mandatory` | No | `true` or `false` (default `false`). Mandatory updates are installed immediately. |
 | `checksum` | No | Hex-encoded hash of the ZIP file. The `algorithm` attribute can be `SHA1`, `MD5`, `SHA256`, or `SHA512`. |

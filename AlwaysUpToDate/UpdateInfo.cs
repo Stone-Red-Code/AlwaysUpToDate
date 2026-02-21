@@ -62,10 +62,10 @@ namespace AlwaysUpToDate
         public string Version { get; set; }
 
         /// <summary>
-        /// Gets or sets the URL from which the update ZIP file can be downloaded.
+        /// Gets or sets the download URL and optional ZIP root path for this update.
         /// </summary>
         [XmlElement("url")]
-        public string DownloadUrl { get; set; }
+        public DownloadUrl DownloadUrl { get; set; }
 
         /// <summary>
         /// Gets or sets an optional URL pointing to a changelog for this update.
@@ -176,6 +176,29 @@ namespace AlwaysUpToDate
 
         /// <summary>
         /// Gets or sets the expected hex-encoded hash value of the downloaded file.
+        /// </summary>
+        [XmlText]
+        public string Value { get; set; }
+    }
+
+    /// <summary>
+    /// Represents a download URL with an optional root path inside the ZIP file.
+    /// </summary>
+    /// <example>
+    /// <c>&lt;url rootPath="release/net8.0"&gt;https://example.com/app.zip&lt;/url&gt;</c>
+    /// </example>
+    public class DownloadUrl
+    {
+        /// <summary>
+        /// Gets or sets an optional path prefix within the ZIP file to treat as the extraction root.
+        /// Only entries under this path are extracted, and the prefix is stripped from their destination paths.
+        /// When <see langword="null"/> (default), the updater auto-detects a single common root folder.
+        /// </summary>
+        [XmlAttribute("rootPath")]
+        public string RootPath { get; set; }
+
+        /// <summary>
+        /// Gets or sets the URL from which the update ZIP file can be downloaded.
         /// </summary>
         [XmlText]
         public string Value { get; set; }

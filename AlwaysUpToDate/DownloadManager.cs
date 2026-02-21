@@ -206,7 +206,7 @@ namespace AlwaysUpToDate
 
                 if (version > assemblyVersion && Interlocked.CompareExchange(ref updating, 0, 0) == 0)
                 {
-                    updateUrl = updateItem.DownloadUrl;
+                    updateUrl = updateItem.DownloadUrl?.Value;
                     pendingUpdateItem = updateItem;
                     if (!updateItem.IsMandatory)
                     {
@@ -260,6 +260,46 @@ namespace AlwaysUpToDate
             };
         }
 
+        private static string NormalizeZipRootPath(string zipRootPath)
+        {
+            if (string.IsNullOrWhiteSpace(zipRootPath))
+            {
+                return null;
+            }
+
+            string normalized = zipRootPath.Replace('\\', '/');
+            if (!normalized.EndsWith("/"))
+            {
+                normalized += "/";
+            }
+
+            return normalized;
+        }
+
+        private static string GetCommonRootFolder(ZipArchive archive)
+        {
+            ZipArchiveEntry firstFile = archive.Entries.FirstOrDefault(e => !string.IsNullOrEmpty(e.Name));
+            if (firstFile == null)
+            {
+                return null;
+            }
+
+            int slashIndex = firstFile.FullName.IndexOf('/');
+            if (slashIndex < 0)
+            {
+                return null;
+            }
+
+            string root = firstFile.FullName.Substring(0, slashIndex + 1);
+
+            if (archive.Entries.All(e => e.FullName.StartsWith(root, StringComparison.OrdinalIgnoreCase)))
+            {
+                return root;
+            }
+
+            return null;
+        }
+
         private async Task DownloadFile()
         {
             try
@@ -309,42 +349,59 @@ namespace AlwaysUpToDate
                 using (ZipArchive zipArchive = ZipFile.OpenRead(zipPath))
                 {
                     string fullInstallPath = Path.GetFullPath(installPath + Path.DirectorySeparatorChar);
+                    string commonRoot = NormalizeZipRootPath(pendingUpdateItem?.DownloadUrl?.RootPath) ?? GetCommonRootFolder(zipArchive);
                     long totalEntries = zipArchive.Entries.Count;
                     long processedEntries = 0;
 
                     foreach (ZipArchiveEntry entry in zipArchive.Entries)
                     {
-                        string destinationPath = Path.GetFullPath(Path.Join(installPath, entry.FullName));
+                        string entryRelativePath = commonRoot != null
+                            ? entry.FullName.Substring(commonRoot.Length)
+                            : entry.FullName;
+
+                        if (string.IsNullOrEmpty(entryRelativePath))
+                        {
+                            processedEntries++;
+                            continue;
+                        }
+
+                        string destinationPath = Path.GetFullPath(Path.Join(installPath, entryRelativePath));
                         if (!destinationPath.StartsWith(fullInstallPath, StringComparison.OrdinalIgnoreCase))
                         {
                             processedEntries++;
                             continue;
                         }
 
-                        if (File.Exists(Path.Join(installPath, entry.FullName)))
+                        if (File.Exists(Path.Join(installPath, entryRelativePath)))
                         {
-                            string moveName = Path.GetFileNameWithoutExtension(entry.FullName) + "_OLD_" + Path.GetExtension(entry.FullName);
+                            string moveName = Path.GetFileNameWithoutExtension(entryRelativePath) + "_OLD_" + Path.GetExtension(entryRelativePath);
                             int counter = 1;
 
                             while (File.Exists(Path.Join(installPath, moveName)))
                             {
-                                moveName = Path.GetFileNameWithoutExtension(entry.FullName) + "_OLD_" + counter + Path.GetExtension(entry.FullName);
+                                moveName = Path.GetFileNameWithoutExtension(entryRelativePath) + "_OLD_" + counter + Path.GetExtension(entryRelativePath);
                                 counter++;
                             }
 
-                            File.Move(Path.Join(installPath, entry.FullName), Path.Join(installPath, moveName));
+                            File.Move(Path.Join(installPath, entryRelativePath), Path.Join(installPath, moveName));
                         }
 
-                        if (entry.FullName.EndsWith('/'))
+                        if (entryRelativePath.EndsWith('/'))
                         {
-                            if (!Directory.Exists(Path.Join(installPath, entry.FullName)))
+                            if (!Directory.Exists(Path.Join(installPath, entryRelativePath)))
                             {
-                                _ = Directory.CreateDirectory(Path.Join(installPath, entry.FullName));
+                                _ = Directory.CreateDirectory(Path.Join(installPath, entryRelativePath));
                             }
                         }
                         else
                         {
-                            entry.ExtractToFile(Path.Join(installPath, entry.FullName), true);
+                            string entryDirectory = Path.GetDirectoryName(Path.Join(installPath, entryRelativePath));
+                            if (!string.IsNullOrEmpty(entryDirectory) && !Directory.Exists(entryDirectory))
+                            {
+                                _ = Directory.CreateDirectory(entryDirectory);
+                            }
+
+                            entry.ExtractToFile(Path.Join(installPath, entryRelativePath), true);
                         }
 
                         processedEntries++;
