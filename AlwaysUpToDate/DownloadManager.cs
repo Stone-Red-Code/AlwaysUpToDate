@@ -329,7 +329,7 @@ namespace AlwaysUpToDate
 
                 TriggerProgressChanged(UpdateStep.Downloading,  null, 0);
 
-                using HttpResponseMessage response = await httpClient.GetAsync(updateUrl);
+                using HttpResponseMessage response = await httpClient.GetAsync(updateUrl, HttpCompletionOption.ResponseHeadersRead);
                 _ = response.EnsureSuccessStatusCode();
 
                 using Stream contentStream = await response.Content.ReadAsStreamAsync();
