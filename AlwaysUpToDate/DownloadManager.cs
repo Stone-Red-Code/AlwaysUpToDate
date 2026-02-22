@@ -138,7 +138,7 @@ namespace AlwaysUpToDate
                 updateTimer.Start();
             }
 
-            UpdateTimer_Elapsed(null, null);
+            _ = CheckForUpdateInternalAsync();
         }
 
         /// <summary>
@@ -166,7 +166,25 @@ namespace AlwaysUpToDate
             }
         }
 
+        /// <summary>
+        /// Manually performs a single update check against the remote manifest.
+        /// Raises <see cref="UpdateAvailable"/> or <see cref="NoUpdateAvailable"/> based on the result.
+        /// If an update is already in progress, the call is ignored.
+        /// </summary>
+        /// <returns>A task that represents the asynchronous check operation.</returns>
+        /// <exception cref="ObjectDisposedException">The updater has been disposed.</exception>
+        public async Task CheckForUpdateAsync()
+        {
+            ThrowIfDisposed();
+            await CheckForUpdateInternalAsync();
+        }
+
         private async void UpdateTimer_Elapsed(object sender, System.Timers.ElapsedEventArgs e)
+        {
+            await CheckForUpdateInternalAsync();
+        }
+
+        private async Task CheckForUpdateInternalAsync()
         {
             if (Interlocked.CompareExchange(ref updating, 0, 0) != 0)
             {

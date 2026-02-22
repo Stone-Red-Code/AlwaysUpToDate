@@ -143,6 +143,13 @@ private static async void Updater_UpdateAvailable(string version, string changel
     }
 }
 ```
+### Manually checking for updates
+Use `CheckForUpdateAsync()` to trigger a single update check at any time, independently of the timer interval.
+`UpdateAvailable` or `NoUpdateAvailable` will be raised as usual when the check completes.
+```cs
+await updater.CheckForUpdateAsync();
+```
+This is also useful when the `Updater` is created without a timer interval or with `onlyUpdateOnce: true`, giving full control over when checks occur.
 ### Update process reporting
 ```cs
 private static void Updater_ProgressChanged(UpdateStep step, long itemsProcessed, long? totalItems, double? progressPercentage)
